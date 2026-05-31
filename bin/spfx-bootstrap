@@ -180,12 +180,16 @@ case "$_shell" in
     bash) _RC="$HOME/.bashrc" ;;
     *)    _RC="$HOME/.bashrc" ;;
 esac
-if ! grep -qF "${SPFX_DIR}/bin" "$_RC" 2>/dev/null; then
-    printf '\n# SPFx tools\nexport SPFX_DIR="%s"\nexport PATH="${SPFX_DIR}/bin:$PATH"\n' \
-        "${SPFX_DIR}" >> "$_RC"
-    log_ok "PATH added to ${_RC}"
+# R9.27: write to ~/.zshenv.local — never touch versioned dotfiles
+# ~/.zshenv sources ~/.zshenv.local so this is picked up on every zsh start
+_ENV_LOCAL="${ZDOTDIR:-$HOME}/.zshenv.local"
+if ! grep -qF "${SPFX_DIR}/bin" "$_ENV_LOCAL" 2>/dev/null && \
+   ! grep -qF "${SPFX_DIR}/bin" "${ZDOTDIR:-$HOME}/.zshenv" 2>/dev/null; then
+    printf '# SPFx tools (added by spfx-bootstrap)\nexport SPFX_DIR="$HOME/dev/spfx"\ncase ":$PATH:" in *":${SPFX_DIR}/bin:"*) ;; *) export PATH="${SPFX_DIR}/bin:$PATH" ;; esac\n' \
+        >> "$_ENV_LOCAL"
+    log_ok "PATH added to ${_ENV_LOCAL}"
 else
-    log_ok "PATH already configured in ${_RC}"
+    log_ok "PATH already configured — skipping"
 fi
 
 # ── Verification ──────────────────────────────────────────────────────────────
